@@ -1,7 +1,11 @@
 # Docker Compose
-COMPOSE=docker compose --env-file .env -f docker/compose.yaml
+COMPOSE = docker compose --env-file .env -f docker/compose.yaml
 
-.PHONY: up down restart logs ps
+.PHONY: up down restart logs ps build pull clean format lint typecheck test
+
+# ==========================
+# Docker Commands
+# ==========================
 
 up:
 	$(COMPOSE) up -d
@@ -19,8 +23,18 @@ logs:
 ps:
 	$(COMPOSE) ps
 
+build:
+	$(COMPOSE) build
+
+pull:
+	$(COMPOSE) pull
+
+clean:
+	$(COMPOSE) down -v --remove-orphans
+
+# ==========================
 # Code Quality
-.PHONY: format lint typecheck test
+# ==========================
 
 format:
 	black src tests

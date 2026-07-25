@@ -36,3 +36,42 @@ services:
       start_period: 10s
 
     restart: unless-stopped
+
+  redis:
+    image: redis:7-alpine
+    container_name: spotify-redis
+
+    restart: unless-stopped
+
+    ports:
+      - "6379:6379"
+
+    command: redis-server --appendonly yes
+
+    volumes:
+      - redis_data:/data
+
+    networks:
+      - spotify-network
+
+  minio:
+    image: minio/minio:latest
+    container_name: spotify-minio
+
+    restart: unless-stopped
+
+    ports:
+      - "9000:9000"
+      - "9001:9001"
+
+    environment:
+      MINIO_ROOT_USER: ${MINIO_ROOT_USER}
+      MINIO_ROOT_PASSWORD: ${MINIO_ROOT_PASSWORD}
+
+    command: server /data --console-address ":9001"
+
+    volumes:
+      - minio_data:/data
+
+    networks:
+      - spotify-network
