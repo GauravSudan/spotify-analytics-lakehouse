@@ -1,0 +1,65 @@
+# -----------------------------
+# Python
+# -----------------------------
+__pycache__/
+*.py[cod]
+*.so
+*.egg-info/
+.venv/
+venv/
+.env
+
+# -----------------------------
+# IDE
+# -----------------------------
+.vscode/
+.idea/
+
+# -----------------------------
+# macOS
+# -----------------------------
+.DS_Store
+
+# -----------------------------
+# Testing
+# -----------------------------
+.pytest_cache/
+.coverage
+htmlcov/
+
+# -----------------------------
+# Airflow
+# -----------------------------
+airflow/logs/
+airflow/airflow.db
+
+# -----------------------------
+# dbt
+# -----------------------------
+dbt/target/
+dbt/logs/
+dbt_packages/
+
+# -----------------------------
+# Data
+# -----------------------------
+data/bronze/*
+data/silver/*
+data/gold/*
+data/warehouse/*.duckdb
+
+# Keep folder structure
+!data/bronze/.gitkeep
+!data/silver/.gitkeep
+!data/gold/.gitkeep
+!data/warehouse/.gitkeep
+
+# -----------------------------
+# Docker
+# -----------------------------
+*.pid
+
+# -----------------------------
+# Misc
+# -----------------------------
+*.log
