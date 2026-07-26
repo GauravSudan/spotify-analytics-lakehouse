@@ -11,6 +11,11 @@ requires-python = ">=3.11"
 authors = [
     { name = "Gaurav Sudan" }
 ]
+dependencies = [
+    "boto3>=1.43.56",
+    "pandas>=3.0.5",
+    "python-dotenv>=1.2.2",
+]
 
 [tool.black]
 line-length = 88
