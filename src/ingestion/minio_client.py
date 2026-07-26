@@ -1,9 +1,9 @@
 import os
 
-from dotenv import load_dotenv
 import boto3
 from botocore.client import Config
 from botocore.exceptions import ClientError
+from dotenv import load_dotenv
 
 load_dotenv()
 
@@ -22,9 +22,13 @@ class MinIOClient:
         )
 
     def create_bucket_if_not_exists(self):
+        """
+        Create the bucket if it does not already exist.
+        """
         try:
             self.s3.head_bucket(Bucket=self.bucket)
             print(f"Bucket '{self.bucket}' already exists.")
+
         except ClientError as e:
             code = e.response["Error"]["Code"]
 
@@ -35,9 +39,39 @@ class MinIOClient:
                 raise
 
     def upload_file(self, local_path: str, object_name: str):
+        """
+        Upload a local file to MinIO.
+        """
         self.s3.upload_file(
             Filename=local_path,
             Bucket=self.bucket,
             Key=object_name,
         )
+
         print(f"Uploaded '{object_name}'")
+
+    def download_file(self, object_name: str, local_path: str):
+        """
+        Download an object from MinIO.
+        """
+        self.s3.download_file(
+            Bucket=self.bucket,
+            Key=object_name,
+            Filename=local_path,
+        )
+
+        print(f"Downloaded '{object_name}'")
+
+    def object_exists(self, object_name: str) -> bool:
+        """
+        Check whether an object exists in MinIO.
+        """
+        try:
+            self.s3.head_object(
+                Bucket=self.bucket,
+                Key=object_name,
+            )
+            return True
+
+        except ClientError:
+            return False

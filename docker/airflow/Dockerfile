@@ -12,4 +12,6 @@ USER airflow
 RUN pip install --no-cache-dir \
     pandas \
     boto3 \
-    python-dotenv
+    python-dotenv \
+    duckdb \
+    pyarrow
