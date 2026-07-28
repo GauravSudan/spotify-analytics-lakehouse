@@ -1,3 +1,5 @@
+from datetime import date
+
 from src.bronze.duckdb_utils import get_connection
 from src.bronze.bronze_transform import (
     export_parquet,
@@ -11,16 +13,11 @@ from src.bronze.bronze_transform import (
 )
 from src.ingestion.minio_client import MinIOClient
 
-from datetime import datetime
+TODAY = date.today().isoformat()
 
-RAW_OBJECT = (
-    f"raw/spotify/"
-    f"ingestion_date={datetime.now().date()}/"
-    f"dataset.csv"
-)
 BRONZE_OBJECT = (
     f"bronze/spotify/"
-    f"ingestion_date={datetime.now().date()}/"
+    f"ingestion_date={TODAY}/"
     f"dataset.parquet"
 )
 
@@ -35,39 +32,49 @@ def run_bronze_pipeline():
 
     client = MinIOClient()
 
-    if not client.object_exists(RAW_OBJECT):
-        raise FileNotFoundError(
-            f"Raw object '{RAW_OBJECT}' not found in MinIO."
-        )
+    # Automatically find the latest Raw dataset
+    raw_object = client.get_latest_object(
+        prefix="raw/spotify",
+        filename="dataset.csv",
+    )
 
     client.download_file(
-        RAW_OBJECT,
+        raw_object,
         LOCAL_CSV,
     )
 
     conn = get_connection()
 
-    load_csv(conn, LOCAL_CSV)
-    validate_row_count(conn)
-    validate_required_columns(conn)
-    validate_duplicate_track_ids(conn)
-    validate_nulls(conn)
+    try:
+        load_csv(conn, LOCAL_CSV)
 
-    print(f"Rows: {get_row_count(conn)}")
+        validate_row_count(conn)
+        validate_required_columns(conn)
+        validate_duplicate_track_ids(conn)
+        validate_nulls(conn)
 
-    print("\nSchema:")
+        print(f"Rows: {get_row_count(conn)}")
 
-    for column in get_schema(conn):
-        print(column)
+        print("\nSchema:")
 
-    export_parquet(
-        conn,
-        LOCAL_PARQUET,
-    )
+        for column in get_schema(conn):
+            print(column)
 
-    client.upload_file(
-        LOCAL_PARQUET,
-        BRONZE_OBJECT,
-    )
+        export_parquet(
+            conn,
+            LOCAL_PARQUET,
+        )
 
-    print("\nBronze pipeline completed successfully.")
+        client.upload_file(
+            LOCAL_PARQUET,
+            BRONZE_OBJECT,
+        )
+
+        print("\nBronze pipeline completed successfully.")
+
+    finally:
+        conn.close()
+
+
+if __name__ == "__main__":
+    run_bronze_pipeline()

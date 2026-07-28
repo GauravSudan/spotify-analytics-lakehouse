@@ -15,14 +15,9 @@ from pathlib import Path
 from src.ingestion.minio_client import MinIOClient
 from src.gold.duckdb_utils import get_connection
 from src.gold.gold_transform import transform
-
+from src.warehouse.warehouse import refresh_gold_tables
 
 TODAY = date.today().isoformat()
-
-SILVER_OBJECT = (
-    f"silver/spotify/ingestion_date={TODAY}/dataset.parquet"
-)
-
 LOCAL_SILVER_FILE = Path("/tmp/silver_dataset.parquet")
 
 GOLD_TABLES = {
@@ -36,10 +31,16 @@ GOLD_TABLES = {
 
 def download_silver_data(minio):
     """
-    Download Silver Parquet from MinIO.
+    Download the latest Silver Parquet from MinIO.
     """
+
+    silver_object = minio.get_latest_object(
+        prefix="silver/spotify",
+        filename="dataset.parquet",
+    )
+
     minio.download_file(
-        object_name=SILVER_OBJECT,
+        object_name=silver_object,
         local_path=str(LOCAL_SILVER_FILE),
     )
 
@@ -105,9 +106,9 @@ def run():
         load_silver_table(con)
 
         transform(con)
-
         export_gold_tables(con)
         upload_gold_data(minio)
+        refresh_gold_tables(con)
 
         print("=" * 50)
         print("Gold Pipeline completed successfully.")

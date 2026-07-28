@@ -2,7 +2,7 @@
 Silver Pipeline
 
 Workflow:
-1. Download Bronze Parquet from MinIO
+1. Download latest Bronze Parquet from MinIO
 2. Load into DuckDB
 3. Apply Silver transformations
 4. Export Silver Parquet
@@ -16,12 +16,7 @@ from src.ingestion.minio_client import MinIOClient
 from src.silver.duckdb_utils import get_connection
 from src.silver.silver_transform import transform
 
-
 TODAY = date.today().isoformat()
-
-BRONZE_OBJECT = (
-    f"bronze/spotify/ingestion_date={TODAY}/dataset.parquet"
-)
 
 SILVER_OBJECT = (
     f"silver/spotify/ingestion_date={TODAY}/dataset.parquet"
@@ -33,10 +28,15 @@ LOCAL_SILVER_FILE = Path("/tmp/silver_dataset.parquet")
 
 def download_bronze_data(minio):
     """
-    Download Bronze Parquet from MinIO.
+    Download the latest Bronze Parquet from MinIO.
     """
+    bronze_object = minio.get_latest_object(
+        prefix="bronze/spotify",
+        filename="dataset.parquet",
+    )
+
     minio.download_file(
-        object_name=BRONZE_OBJECT,
+        object_name=bronze_object,
         local_path=str(LOCAL_BRONZE_FILE),
     )
 
@@ -90,19 +90,21 @@ def run():
     minio = MinIOClient()
     con = get_connection()
 
-    download_bronze_data(minio)
-    load_bronze_table(con)
+    try:
+        download_bronze_data(minio)
+        load_bronze_table(con)
 
-    transform(con)
+        transform(con)
 
-    export_silver_table(con)
-    upload_silver_data(minio)
+        export_silver_table(con)
+        upload_silver_data(minio)
 
-    con.close()
+        print("=" * 50)
+        print("Silver Pipeline completed successfully.")
+        print("=" * 50)
 
-    print("=" * 50)
-    print("Silver Pipeline completed successfully.")
-    print("=" * 50)
+    finally:
+        con.close()
 
 
 if __name__ == "__main__":

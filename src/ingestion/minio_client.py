@@ -4,6 +4,8 @@ import boto3
 from botocore.client import Config
 from botocore.exceptions import ClientError
 from dotenv import load_dotenv
+from datetime import datetime
+import re
 
 load_dotenv()
 
@@ -75,3 +77,59 @@ class MinIOClient:
 
         except ClientError:
             return False
+
+    def get_latest_object(self, prefix: str, filename: str) -> str:
+        """
+        Returns the latest object matching:
+
+            <prefix>/ingestion_date=YYYY-MM-DD/<filename>
+
+        Example:
+            prefix="silver/spotify"
+            filename="dataset.parquet"
+
+        Returns:
+            silver/spotify/ingestion_date=2026-07-26/dataset.parquet
+        """
+
+        paginator = self.s3.get_paginator("list_objects_v2")
+
+        pages = paginator.paginate(
+            Bucket=self.bucket,
+            Prefix=prefix,
+        )
+
+        pattern = re.compile(r"ingestion_date=(\d{4}-\d{2}-\d{2})")
+
+        latest_date = None
+        latest_key = None
+
+        for page in pages:
+            for obj in page.get("Contents", []):
+                key = obj["Key"]
+
+                if not key.endswith(filename):
+                    continue
+
+                match = pattern.search(key)
+
+                if not match:
+                    continue
+
+                current_date = datetime.strptime(
+                    match.group(1),
+                    "%Y-%m-%d",
+                ).date()
+
+                if latest_date is None or current_date > latest_date:
+                    latest_date = current_date
+                    latest_key = key
+
+        if latest_key is None:
+            raise FileNotFoundError(
+                f"No '{filename}' found under '{prefix}'"
+            )
+
+        print(f"Using latest object: {latest_key}")
+
+        return latest_key
